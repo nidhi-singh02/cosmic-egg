@@ -198,7 +198,7 @@ export function CosmicEgg({ isHatching, onHatch, disabled, cost }: CosmicEggProp
         </p>
         {cost && (
           <p className="mt-2 text-gray-400">
-            Cost: <span className="text-purple-400 font-semibold">{cost} ETH</span>
+            Cost: <span className="text-purple-400 font-semibold">{cost} MON</span>
           </p>
         )}
       </motion.div>

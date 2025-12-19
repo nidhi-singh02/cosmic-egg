@@ -2,16 +2,30 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { motion } from 'framer-motion'
 
 export function Navigation() {
   const pathname = usePathname()
+  const { address, isConnected } = useAccount()
+  const { connect, connectors } = useConnect()
+  const { disconnect } = useDisconnect()
   
   const links = [
     { href: '/', label: 'Hatch' },
     { href: '/collection', label: 'Collection' },
   ]
+
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  }
+
+  const handleConnect = () => {
+    const injectedConnector = connectors.find(c => c.id === 'injected')
+    if (injectedConnector) {
+      connect({ connector: injectedConnector })
+    }
+  }
   
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
@@ -58,10 +72,22 @@ export function Navigation() {
             </div>
             
             {/* Connect button */}
-            <ConnectButton 
-              chainStatus="icon"
-              showBalance={false}
-            />
+            {isConnected && address ? (
+              <button
+                onClick={() => disconnect()}
+                className="px-4 py-2 rounded-xl bg-gray-800 border border-gray-700 hover:border-purple-500/50 text-white text-sm font-medium transition-all flex items-center gap-2"
+              >
+                <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                {formatAddress(address)}
+              </button>
+            ) : (
+              <button
+                onClick={handleConnect}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-medium transition-all"
+              >
+                Connect Wallet
+              </button>
+            )}
           </div>
         </div>
       </div>

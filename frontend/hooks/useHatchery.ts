@@ -1,7 +1,7 @@
 'use client'
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
-import { parseEther } from 'viem'
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, usePublicClient } from 'wagmi'
+import { decodeEventLog } from 'viem'
 import { COSMIC_HATCHERY_ADDRESS, COSMIC_HATCHERY_ABI } from '@/lib/contract'
 import { Creature } from '@/lib/traits'
 
@@ -14,9 +14,10 @@ export function useHatchCost() {
 }
 
 export function useHatchEgg() {
-  const { data: hash, writeContract, isPending, error } = useWriteContract()
+  const { data: hash, writeContract, isPending, error, reset } = useWriteContract()
+  const publicClient = usePublicClient()
   
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
     hash,
   })
 
@@ -29,6 +30,50 @@ export function useHatchEgg() {
     })
   }
 
+  // Parse CreatureHatched event from transaction receipt logs
+  const parseCreatureFromReceipt = (): { tokenId: number; creature: Creature } | null => {
+    if (!receipt?.logs) return null
+    
+    for (const log of receipt.logs) {
+      try {
+        // Check if log is from our contract
+        if (log.address.toLowerCase() !== COSMIC_HATCHERY_ADDRESS.toLowerCase()) continue
+        
+        const decoded = decodeEventLog({
+          abi: COSMIC_HATCHERY_ABI,
+          data: log.data,
+          topics: log.topics,
+        })
+        
+        if (decoded.eventName === 'CreatureHatched') {
+          const args = decoded.args as {
+            owner: `0x${string}`
+            tokenId: bigint
+            rarity: number
+            element: number
+            species: number
+            power: number
+            ability: number
+          }
+          return {
+            tokenId: Number(args.tokenId),
+            creature: {
+              rarity: args.rarity,
+              element: args.element,
+              species: args.species,
+              power: args.power,
+              ability: args.ability,
+              birthBlock: BigInt(0),
+            }
+          }
+        }
+      } catch {
+        // Not our event, continue
+      }
+    }
+    return null
+  }
+
   return {
     hatch,
     hash,
@@ -36,6 +81,9 @@ export function useHatchEgg() {
     isConfirming,
     isSuccess,
     error,
+    reset,
+    receipt,
+    parseCreatureFromReceipt,
   }
 }
 

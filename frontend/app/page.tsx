@@ -1,65 +1,85 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAccount, useWatchContractEvent } from 'wagmi'
+import { useState, useEffect, useRef } from 'react'
+import { useAccount } from 'wagmi'
 import { formatEther } from 'viem'
 import { motion } from 'framer-motion'
 import { CosmicEgg } from '@/components/CosmicEgg'
 import { HatchReveal } from '@/components/HatchReveal'
-import { useHatchCost, useHatchEgg, useUserBalance } from '@/hooks/useHatchery'
-import { COSMIC_HATCHERY_ADDRESS, COSMIC_HATCHERY_ABI } from '@/lib/contract'
+import { useHatchCost, useHatchEgg, useUserBalance, useCreaturesByOwner } from '@/hooks/useHatchery'
 import { Creature } from '@/lib/traits'
 
 export default function HomePage() {
   const { address, isConnected } = useAccount()
   const { data: hatchCost, refetch: refetchCost } = useHatchCost()
   const { data: balance, refetch: refetchBalance } = useUserBalance()
-  const { hatch, isPending, isConfirming, isSuccess, hash, error } = useHatchEgg()
+  const { data: creaturesData, refetch: refetchCreatures } = useCreaturesByOwner(address)
+  const { hatch, isPending, isConfirming, isSuccess, hash, error, reset, parseCreatureFromReceipt } = useHatchEgg()
   
   const [isHatching, setIsHatching] = useState(false)
   const [revealedCreature, setRevealedCreature] = useState<Creature | null>(null)
   const [revealedTokenId, setRevealedTokenId] = useState<number>(0)
   const [showReveal, setShowReveal] = useState(false)
+  const previousBalanceRef = useRef<bigint | undefined>(undefined)
   
-  // Watch for CreatureHatched events
-  useWatchContractEvent({
-    address: COSMIC_HATCHERY_ADDRESS,
-    abi: COSMIC_HATCHERY_ABI,
-    eventName: 'CreatureHatched',
-    onLogs(logs) {
-      const log = logs[0]
-      if (log && log.args) {
-        const args = log.args as {
-          owner: `0x${string}`
-          tokenId: bigint
-          rarity: number
-          element: number
-          species: number
-          power: number
-          ability: number
-        }
-        
-        if (args.owner?.toLowerCase() === address?.toLowerCase()) {
-          const creature: Creature = {
-            rarity: args.rarity,
-            element: args.element,
-            species: args.species,
-            power: args.power,
-            ability: args.ability,
-            birthBlock: BigInt(0),
-          }
-          setRevealedCreature(creature)
-          setRevealedTokenId(Number(args.tokenId))
-          setIsHatching(false)
-          setShowReveal(true)
-          refetchBalance()
-        }
+  // Track balance changes for fallback detection
+  useEffect(() => {
+    if (balance !== undefined) {
+      previousBalanceRef.current = balance
+    }
+  }, [balance])
+
+  // Handle successful transaction - parse creature from receipt or poll for new creature
+  useEffect(() => {
+    if (isSuccess && isHatching) {
+      // Try to parse from transaction receipt first
+      const result = parseCreatureFromReceipt()
+      if (result) {
+        setRevealedCreature(result.creature)
+        setRevealedTokenId(result.tokenId)
+        setIsHatching(false)
+        setShowReveal(true)
+        refetchBalance()
+        return
       }
-    },
-  })
+      
+      // Fallback: Poll for the new creature in collection
+      const pollForCreature = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+          const { data: newData } = await refetchCreatures()
+          
+          if (newData && newData[0] && newData[0].length > 0) {
+            const tokenIds = newData[0] as bigint[]
+            const creatures = newData[1] as Creature[]
+            
+            // Get the latest creature (highest token ID)
+            const latestIndex = tokenIds.length - 1
+            const latestTokenId = Number(tokenIds[latestIndex])
+            const latestCreature = creatures[latestIndex]
+            
+            if (latestCreature) {
+              setRevealedCreature(latestCreature)
+              setRevealedTokenId(latestTokenId)
+              setIsHatching(false)
+              setShowReveal(true)
+              refetchBalance()
+              return
+            }
+          }
+        }
+        // If polling fails after 10 attempts, just reset the UI
+        setIsHatching(false)
+        refetchBalance()
+      }
+      
+      pollForCreature()
+    }
+  }, [isSuccess, isHatching, parseCreatureFromReceipt, refetchCreatures, refetchBalance])
 
   const handleHatch = async () => {
     if (!hatchCost) return
+    reset() // Reset previous transaction state
     setIsHatching(true)
     try {
       await hatch(hatchCost)

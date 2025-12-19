@@ -1,10 +1,10 @@
 # 🥚 Cosmic Egg Hatchery
 
-An on-chain game where players hatch cosmic eggs containing unique creatures with randomly generated traits, powered by **Pyth Entropy v2** for verifiable randomness on **Base Sepolia**.
+An on-chain game where players hatch cosmic eggs containing unique creatures with randomly generated traits, powered by **Pyth Entropy v2** for verifiable randomness on **Testnet**.
 
-![Cosmic Egg Hatchery](https://img.shields.io/badge/Network-Base%20Sepolia-blue)
+![Cosmic Egg Hatchery](https://img.shields.io/badge/Network-Monad%20Testnet-9b4dff)
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.24-purple)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
 
 ## ✨ Features
 
@@ -65,7 +65,7 @@ cosmic-egg-hatchery/
 
 - [Node.js](https://nodejs.org/) v18+
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
-- A wallet with Base Sepolia ETH (get some from a [faucet](https://www.alchemy.com/overviews/get-base-sepolia-eth))
+- A wallet with Monad Testnet MON (get some from [Monad Faucet](https://faucet.monad.xyz))
 
 ### Smart Contract Deployment
 
@@ -91,10 +91,10 @@ cosmic-egg-hatchery/
    forge test
    ```
 
-5. **Deploy to Base Sepolia**
+5. **Deploy to Monad Testnet**
    ```bash
    source .env
-   forge script script/Deploy.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast --verify
+   forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast --verify
    ```
 
 ### Frontend Setup
@@ -125,19 +125,20 @@ cosmic-egg-hatchery/
 
 ## 🔧 Configuration
 
-### Contract Addresses
+### Network Details
 
-| Network | Entropy Contract | Default Provider |
-|---------|-----------------|------------------|
-| Base Sepolia | `0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c` | `0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344` |
+| Network | Chain ID | RPC URL | Explorer |
+|---------|----------|---------|----------|
+| Monad Testnet | `10143` | `https://testnet-rpc.monad.xyz` | `https://testnet.monadexplorer.com` |
 
 ### Environment Variables
 
 **Contracts (`.env`):**
 ```env
 PRIVATE_KEY=your_private_key
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-BASESCAN_API_KEY=your_basescan_api_key
+
+# Pyth Entropy addresses (check https://docs.pyth.network/entropy/contract-addresses)
+ENTROPY_CONTRACT=0x0000000000000000000000000000000000000000
 ```
 
 **Frontend (`.env.local`):**
@@ -219,7 +220,8 @@ event CreatureHatched(
 ## 🔗 Resources
 
 - [Pyth Entropy Documentation](https://docs.pyth.network/entropy)
-- [Base Sepolia Faucet](https://www.alchemy.com/overviews/get-base-sepolia-eth)
+- [Monad Testnet Faucet](https://faucet.monad.xyz)
+- [Monad Documentation](https://docs.monad.xyz)
 - [Foundry Book](https://book.getfoundry.sh/)
 
 ## 📄 License
@@ -228,5 +230,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-Built with 💜 using Pyth Entropy v2 on Base Sepolia
+Built with 💜 using Pyth Entropy v2 on Monad Testnet
 
